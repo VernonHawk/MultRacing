@@ -16,6 +16,11 @@ struct FCarMove
 	UPROPERTY()
 	float SteeringThrow { 0.f };
 
+	// Frame time
 	UPROPERTY()
 	float DeltaTime { 0.f };
+
+	// Move start time
+	UPROPERTY()
+	float Time { 0.f };
 };
