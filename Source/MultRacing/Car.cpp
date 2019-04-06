@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+// Made by Igor Morenets; April 2019
 
 #include "Car.h"
 #include "Components/InputComponent.h"
@@ -20,7 +20,7 @@ void ACar::BeginPlay()
 {
 	Super::BeginPlay();
 
-	if  (HasAuthority())
+	if  (HasAuthority()) // is a server
 	{
 		NetUpdateFrequency = 10;
 	}
@@ -38,16 +38,10 @@ void ACar::Tick(float const DeltaTime)
 	UpdateRotation(DeltaTime); 
 	UpdateLocation(DeltaTime);
 	
-	if (HasAuthority()) // is server
+	if (HasAuthority()) // is a server
 	{
 		mReplicatedTransform = GetActorTransform();
 	}
-
-	DrawDebugString(
-		GetWorld(), {0.f, 0.f, 100.f}, 
-		GetNetRoleName(GetLocalRole()), this, 
-		FColor::White, DeltaTime
-	);
 }
 #pragma endregion
 
