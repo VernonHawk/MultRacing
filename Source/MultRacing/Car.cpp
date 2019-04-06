@@ -20,7 +20,7 @@ void ACar::BeginPlay()
 {
 	Super::BeginPlay();
 
-	if  (HasAuthority())
+	if  (HasAuthority()) // is a server
 	{
 		NetUpdateFrequency = 10;
 	}
@@ -31,23 +31,17 @@ void ACar::Tick(float const DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+	if (!HasAuthority()) // is not a server
+		return;
+
 	auto const Force {GetActorForwardVector() * (mMaxDrivingForce * mThrottle)};
 
 	mVelocity += (Force + CalculateResistance()) / mMass * DeltaTime;
 
 	UpdateRotation(DeltaTime); 
 	UpdateLocation(DeltaTime);
-	
-	if (HasAuthority()) // is server
-	{
-		mReplicatedTransform = GetActorTransform();
-	}
 
-	DrawDebugString(
-		GetWorld(), {0.f, 0.f, 100.f}, 
-		GetNetRoleName(GetLocalRole()), this, 
-		FColor::White, DeltaTime
-	);
+	mReplicatedTransform = GetActorTransform();
 }
 #pragma endregion
 
@@ -70,9 +64,9 @@ void ACar::GetLifetimeReplicatedProps(
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 	DOREPLIFETIME(ACar, mReplicatedTransform)
-	DOREPLIFETIME(ACar, mVelocity)
-	DOREPLIFETIME(ACar, mThrottle)
-	DOREPLIFETIME(ACar, mSteeringThrow)
+	//DOREPLIFETIME(ACar, mVelocity)
+	//DOREPLIFETIME(ACar, mThrottle)
+	//DOREPLIFETIME(ACar, mSteeringThrow)
 }
 #pragma endregion
 

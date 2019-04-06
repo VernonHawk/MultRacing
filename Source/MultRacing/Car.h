@@ -15,6 +15,8 @@ public:
 	// Sets default values for this pawn's properties
 	ACar();
 
+	~ACar() = default;
+
 	// Called every frame
 	void Tick(float DeltaTime) override;
 
@@ -52,13 +54,13 @@ private:
 	float mMinTurningRadius {10.f};
 	#pragma endregion 
 
-	UPROPERTY(Replicated)
+	//UPROPERTY(Replicated)
 	FVector mVelocity {0.f};
 
-	UPROPERTY(Replicated)
+	//UPROPERTY(Replicated)
 	float mThrottle {0.f};
 
-	UPROPERTY(Replicated)
+	//UPROPERTY(Replicated)
 	float mSteeringThrow {0.f};
 
 	UPROPERTY(ReplicatedUsing = OnRep_Transform)
@@ -67,7 +69,7 @@ private:
 	UFUNCTION()
 	void OnRep_Transform();
 
-	auto CalculateResistance() const->FVector;
+	auto CalculateResistance() const -> FVector;
 
 	void UpdateLocation(float DeltaTime);
 	void UpdateRotation(float DeltaTime);
