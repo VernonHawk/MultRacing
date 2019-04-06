@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Pawn.h"
+#include "CarState.h"
 #include "Car.generated.h"
 
 UCLASS()
@@ -52,41 +53,28 @@ private:
 	float mMinTurningRadius { 10.f };
 	#pragma endregion 
 
-	UPROPERTY(Replicated)
 	FVector mVelocity { 0.f };
-
-	UPROPERTY(Replicated)
 	float mThrottle { 0.f };
-
-	UPROPERTY(Replicated)
 	float mSteeringThrow { 0.f };
 
-	UPROPERTY(ReplicatedUsing = OnRep_Transform)
-	FTransform mReplicatedTransform {};
+	UPROPERTY(ReplicatedUsing = OnRep_ServerState)
+	FCarState mServerState {};
 
 	UFUNCTION()
-	void OnRep_Transform();
+	void OnRep_ServerState();
 
-	auto CalculateResistance() const->FVector;
+	void SimulateMove(FCarMove const& Move);
+
+	auto CalculateResistance() const -> FVector;
 
 	void UpdateLocation(float DeltaTime);
-	void UpdateRotation(float DeltaTime);
+	void UpdateRotation(float DeltaTime, float SteeringThrow);
 
-	#pragma region Move Forward
 	void MoveForward(float Value);
-
-	UFUNCTION(Server, Reliable, WithValidation)
-	void Server_MoveForward(float Value);
-	void Server_MoveForward_Implementation(float Value);
-	bool Server_MoveForward_Validate(float Value) const;
-	#pragma endregion
-
-	#pragma region Move Right
 	void MoveRight(float Value);
 
 	UFUNCTION(Server, Reliable, WithValidation)
-	void Server_MoveRight(float Value);
-	void Server_MoveRight_Implementation(float Value);
-	bool Server_MoveRight_Validate(float Value) const;
-	#pragma endregion
+	void Server_SendMove(FCarMove const& Move);
+	void Server_SendMove_Implementation(FCarMove const& Move);
+	bool Server_SendMove_Validate(FCarMove const& Move) const;
 };

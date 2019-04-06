@@ -31,17 +31,17 @@ void ACar::Tick(float const DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	auto const Force { GetActorForwardVector() * (mMaxDrivingForce * mThrottle) };
+	if (!IsLocallyControlled())
+		return;
 
-	mVelocity += (Force + CalculateResistance()) / mMass * DeltaTime;
+	auto const Move = FCarMove { mThrottle, mSteeringThrow, DeltaTime, GetGameTimeSinceCreation() };
 
-	UpdateRotation(DeltaTime); 
-	UpdateLocation(DeltaTime);
-	
-	if (HasAuthority()) // is a server
+	if (!HasAuthority())
 	{
-		mReplicatedTransform = GetActorTransform();
+		Server_SendMove(Move);
 	}
+
+	SimulateMove(Move);
 }
 #pragma endregion
 
@@ -63,17 +63,25 @@ void ACar::GetLifetimeReplicatedProps(
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
-	DOREPLIFETIME(ACar, mReplicatedTransform)
-	DOREPLIFETIME(ACar, mVelocity)
-	DOREPLIFETIME(ACar, mThrottle)
-	DOREPLIFETIME(ACar, mSteeringThrow)
+	DOREPLIFETIME(ACar, mServerState)
 }
 #pragma endregion
 
 #pragma region Private
-void ACar::OnRep_Transform()
+void ACar::OnRep_ServerState()
 {
-	SetActorTransform(mReplicatedTransform);
+	SetActorTransform(mServerState.Transform);
+	mVelocity = mServerState.Velocity;
+}
+
+void ACar::SimulateMove(FCarMove const& Move)
+{
+	auto const Force { GetActorForwardVector() * (mMaxDrivingForce * Move.Throttle) };
+
+	mVelocity += (Force + CalculateResistance()) / mMass * Move.DeltaTime;
+
+	UpdateRotation(Move.DeltaTime, Move.SteeringThrow);
+	UpdateLocation(Move.DeltaTime);
 }
 
 auto ACar::CalculateResistance() const -> FVector
@@ -99,10 +107,10 @@ void ACar::UpdateLocation(float const DeltaTime)
 		mVelocity *= 0.1f;
 }
 
-void ACar::UpdateRotation(float const DeltaTime)
+void ACar::UpdateRotation(float const DeltaTime, float const SteeringThrow)
 {
 	auto const DeltaLocation { FVector::DotProduct(mVelocity, GetActorForwardVector()) * DeltaTime };
-	auto const Angle { DeltaLocation / mMinTurningRadius * mSteeringThrow };
+	auto const Angle { DeltaLocation / mMinTurningRadius * SteeringThrow };
 	auto const DeltaRotation = FQuat { GetActorUpVector(), Angle };
 
 	mVelocity = DeltaRotation.RotateVector(mVelocity);
@@ -110,41 +118,30 @@ void ACar::UpdateRotation(float const DeltaTime)
 	AddActorLocalRotation(DeltaRotation);
 }
 
-#pragma region Move Forward
 void ACar::MoveForward(float const Value)
 {
 	mThrottle = Value;
-
-	Server_MoveForward(Value);
 }
 
-void ACar::Server_MoveForward_Implementation(float const Value)
-{
-	mThrottle = Value;
-}
-
-bool ACar::Server_MoveForward_Validate(float const Value) const
-{
-	return FMath::Abs(Value) <= 1.f;
-}
-#pragma endregion
-
-#pragma region Move Right
 void ACar::MoveRight(float const Value)
 {
 	mSteeringThrow = Value;
-
-	Server_MoveRight(Value);
 }
 
-void ACar::Server_MoveRight_Implementation(float const Value)
+void ACar::Server_SendMove_Implementation(FCarMove const& Move)
 {
-	mSteeringThrow = Value;
+	SimulateMove(Move);
+
+	mServerState.LastMove  = Move;
+	mServerState.Transform = GetActorTransform();
+	mServerState.Velocity  = mVelocity;
 }
 
-bool ACar::Server_MoveRight_Validate(float const Value) const
+bool ACar::Server_SendMove_Validate(FCarMove const& Move) const
 {
-	return FMath::Abs(Value) <= 1.f;
+	auto const ValidTransform { FMath::Abs(Move.SteeringThrow) <= 1.f && FMath::Abs(Move.Throttle) <= 1.f };
+	auto const ValidTime { Move.DeltaTime > 0.f && Move.Time >= 0.f};
+
+	return ValidTransform && ValidTime;
 }
-#pragma endregion
 #pragma endregion
