@@ -31,7 +31,7 @@ void ACar::Tick(float const DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	auto const Force {GetActorForwardVector() * (mMaxDrivingForce * mThrottle)};
+	auto const Force { GetActorForwardVector() * (mMaxDrivingForce * mThrottle) };
 
 	mVelocity += (Force + CalculateResistance()) / mMass * DeltaTime;
 
@@ -78,19 +78,19 @@ void ACar::OnRep_Transform()
 
 auto ACar::CalculateResistance() const -> FVector
 {
-	auto const VelocityDirection {mVelocity.GetSafeNormal()};
-	auto const AirResistance {VelocityDirection * (-mVelocity.SizeSquared() * mDragCoefficient)};
+	auto const VelocityDirection { mVelocity.GetSafeNormal() };
+	auto const AirResistance { VelocityDirection * (-mVelocity.SizeSquared() * mDragCoefficient) };
 
-	auto const GravityAcceleration {GetWorld()->GetGravityZ() / -100}; // convert negative cm to m
-	auto const NormalForce {GravityAcceleration * mMass};
-	auto const RollingResistance {VelocityDirection * -mRollingResistanceCoefficient * NormalForce};
+	auto const GravityAcceleration { GetWorld()->GetGravityZ() / -100 }; // convert negative cm to m
+	auto const NormalForce { GravityAcceleration * mMass };
+	auto const RollingResistance { VelocityDirection * -mRollingResistanceCoefficient * NormalForce };
 
 	return AirResistance + RollingResistance;
 }
 
 void ACar::UpdateLocation(float const DeltaTime)
 {
-	auto const Translation {mVelocity * (DeltaTime * 100)}; // convert centimeters to meters
+	auto const Translation { mVelocity * (DeltaTime * 100) }; // convert centimeters to meters
 
 	auto HitResult = FHitResult {};
 	AddActorWorldOffset(Translation, true, &HitResult);
@@ -101,13 +101,13 @@ void ACar::UpdateLocation(float const DeltaTime)
 
 void ACar::UpdateRotation(float const DeltaTime)
 {
-	auto const DeltaLocation {FVector::DotProduct(mVelocity, GetActorForwardVector()) * DeltaTime};
-	auto const Angle {DeltaLocation / mMinTurningRadius * mSteeringThrow};
-	auto const Delta = FQuat {GetActorUpVector(), Angle};
+	auto const DeltaLocation { FVector::DotProduct(mVelocity, GetActorForwardVector()) * DeltaTime };
+	auto const Angle { DeltaLocation / mMinTurningRadius * mSteeringThrow };
+	auto const DeltaRotation = FQuat { GetActorUpVector(), Angle };
 
-	mVelocity = Delta.RotateVector(mVelocity);
+	mVelocity = DeltaRotation.RotateVector(mVelocity);
 
-	AddActorLocalRotation(Delta);
+	AddActorLocalRotation(DeltaRotation);
 }
 
 #pragma region Move Forward
@@ -148,22 +148,3 @@ bool ACar::Server_MoveRight_Validate(float const Value) const
 }
 #pragma endregion
 #pragma endregion
-
-#pragma region Free functions
-FString GetNetRoleName(ENetRole const Role)
-{
-	switch (Role)
-	{
-		case ROLE_None:
-			return TEXT("None");
-		case ROLE_SimulatedProxy:
-			return TEXT("SimulatedProxy");
-		case ROLE_AutonomousProxy:
-			return TEXT("AutonomousProxy");
-		case ROLE_Authority:
-			return TEXT("Authority");
-		default:
-			return TEXT("ERROR");
-	}
-}
-#pragma endregion 
