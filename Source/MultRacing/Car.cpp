@@ -31,11 +31,12 @@ void ACar::Tick(float const DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	auto const Move = FCarMove { mThrottle, mSteeringThrow, DeltaTime, GetGameTimeSinceCreation() };
+	auto const Move = FCarMove { mThrottle, mSteeringThrow, DeltaTime, GetWorld()->TimeSeconds };
 
-	if (IsLocallyControlled() && !HasAuthority()) // is owner and not a server (server would play move two times)
+	if (IsLocallyControlled() && !HasAuthority()) // is owner and not a server
 	{
 		Server_SendMove(Move);
+		mUnackedMoves.AddTail(Move);
 	}
 
 	SimulateMove(Move);
@@ -69,6 +70,12 @@ void ACar::OnRep_ServerState()
 {
 	SetActorTransform(mServerState.Transform);
 	mVelocity = mServerState.Velocity;
+
+	// Remove acknowledged (old) moves
+	while (mUnackedMoves.Num() > 0 && mUnackedMoves.GetHead()->GetValue().Time <= mServerState.LastMove.Time)
+	{
+		mUnackedMoves.RemoveNode(mUnackedMoves.GetHead(), true);
+	}
 }
 
 void ACar::SimulateMove(FCarMove const& Move)

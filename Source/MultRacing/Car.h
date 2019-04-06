@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Pawn.h"
 #include "CarState.h"
+#include "List.h"
 #include "Car.generated.h"
 
 UCLASS()
@@ -56,6 +57,8 @@ private:
 	FVector mVelocity { 0.f };
 	float mThrottle { 0.f };
 	float mSteeringThrow { 0.f };
+
+	TDoubleLinkedList<FCarMove> mUnackedMoves {};
 
 	UPROPERTY(ReplicatedUsing = OnRep_ServerState)
 	FCarState mServerState {};
