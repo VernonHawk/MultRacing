@@ -31,12 +31,9 @@ void ACar::Tick(float const DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	if (!IsLocallyControlled())
-		return;
-
 	auto const Move = FCarMove { mThrottle, mSteeringThrow, DeltaTime, GetGameTimeSinceCreation() };
 
-	if (!HasAuthority())
+	if (IsLocallyControlled() && !HasAuthority()) // is owner and not a server (server would play move two times)
 	{
 		Server_SendMove(Move);
 	}
