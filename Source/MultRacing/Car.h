@@ -7,6 +7,7 @@
 #include "CarState.h"
 #include "List.h"
 #include "CarMovementComponent.h"
+#include "CarMovementReplicationComponent.h"
 #include "Car.generated.h"
 
 UCLASS()
@@ -33,8 +34,11 @@ protected:
 	) const override;
 
 private:
-	UPROPERTY(EditAnywhere)
-	UCarMovementComponent* const _MovementComponent {nullptr};
+	UPROPERTY(VisibleAnywhere)
+	UCarMovementComponent* const _MovementComponent { nullptr };
+
+	UPROPERTY(VisibleAnywhere)
+	UCarMovementReplicationComponent* const _MovementReplicationComponent { nullptr };
 
 	TDoubleLinkedList<FCarMove> _UnackedMoves {};
 

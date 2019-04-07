@@ -9,7 +9,12 @@
 #pragma region Public
 // Sets default values
 ACar::ACar() : 
-	_MovementComponent { CreateDefaultSubobject<UCarMovementComponent>(TEXT("MovementComponent")) }
+	_MovementComponent { 
+		CreateDefaultSubobject<UCarMovementComponent>(TEXT("MovementComponent"))
+	},
+	_MovementReplicationComponent {
+		CreateDefaultSubobject<UCarMovementReplicationComponent>(TEXT("MovementReplicationComponent"))
+	}
 {
 	PrimaryActorTick.bCanEverTick = true;
 	bReplicates = true;
