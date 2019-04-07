@@ -2,6 +2,7 @@
 
 #include "CarMovementComponent.h"
 #include "CarMove.h"
+#include "RoleHelpers.h"
 
 #pragma region Public
 // Sets default values for this component's properties
@@ -20,8 +21,7 @@ void UCarMovementComponent::TickComponent(
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
-	// Local player or dedicated server
-	if (GetOwnerRole() == ROLE_AutonomousProxy || GetOwner()->GetRemoteRole() == ROLE_SimulatedProxy)
+	if (IsLocalClient(GetOwner()) || IsListenServer(GetOwner()))
 	{
 		_LastMove = { GetThrottle(), GetSteeringThrow(), DeltaTime, GetWorld()->TimeSeconds };
 		SimulateMove(GetLastMove());

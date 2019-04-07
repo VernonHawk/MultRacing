@@ -2,7 +2,6 @@
 
 #include "Car.h"
 #include "Components/InputComponent.h"
-#include "DrawDebugHelpers.h"
 #include "Engine/World.h"
 #include "UnrealNetwork.h"
 
@@ -16,6 +15,7 @@ ACar::ACar() :
 {
 	PrimaryActorTick.bCanEverTick = true;
 	bReplicates = true;
+	bReplicateMovement = false;
 }
 
 // Called when the game starts or when spawned

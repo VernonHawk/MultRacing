@@ -2,6 +2,7 @@
 
 #include "CarMovementReplicationComponent.h"
 #include "GameFramework/Actor.h"
+#include "RoleHelpers.h"
 #include "UnrealNetwork.h"
 
 #pragma region Public
@@ -22,20 +23,21 @@ void UCarMovementReplicationComponent::TickComponent(
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
-	if (!_OwnerMovement) return;
+	if (!_OwnerMovement)
+		return;
 
 	auto const LastMove { _OwnerMovement->GetLastMove() };
 
-	if (GetOwnerRole() == ROLE_AutonomousProxy) // Local player
+	if (IsLocalClient(GetOwner()))
 	{
 		_UnackedMoves.AddTail(LastMove);
 		Server_SendMove(LastMove);
 	} 
-	else if (GetOwnerRole() == ROLE_SimulatedProxy) // Simulated player
+	else if (IsRemoteClient(GetOwner()))
 	{
-		_OwnerMovement->SimulateMove(_ServerState.LastMove);
+		RemoteClientTick(DeltaTime);
 	} 
-	else if (GetOwner()->GetRemoteRole() == ROLE_SimulatedProxy) // Listen server
+	else if (IsListenServer(GetOwner()))
 	{
 		UpdateServerState(LastMove);
 	}
@@ -62,6 +64,19 @@ void UCarMovementReplicationComponent::GetLifetimeReplicatedProps(
 #pragma endregion 
 
 #pragma region Private
+void UCarMovementReplicationComponent::RemoteClientTick(float const DeltaTime)
+{
+	_ClientTimeSinceUpdate += DeltaTime;
+
+	if (_ClientTimeBetweenLastUpdates < KINDA_SMALL_NUMBER)
+		return;
+
+	auto const LerpRatio { _ClientTimeSinceUpdate / _ClientTimeBetweenLastUpdates };
+	auto const NewLocation { FMath::LerpStable(_ClientStartLocation, _ServerState.Transform.GetLocation(), LerpRatio) };
+
+	GetOwner()->SetActorLocation(NewLocation);
+}
+
 void UCarMovementReplicationComponent::UpdateServerState(FCarMove const& Move)
 {
 	_ServerState.LastMove  = Move;
@@ -71,7 +86,20 @@ void UCarMovementReplicationComponent::UpdateServerState(FCarMove const& Move)
 
 void UCarMovementReplicationComponent::OnRep_ServerState()
 {
-	if (!_OwnerMovement) return;
+	if (IsLocalClient(GetOwner()))
+	{
+		LocalClient_OnRep_ServerState();
+	}
+	else if (IsRemoteClient(GetOwner()))
+	{
+		RemoteClient_OnRep_ServerState();
+	}
+}
+
+void UCarMovementReplicationComponent::LocalClient_OnRep_ServerState()
+{
+	if (!_OwnerMovement)
+		return;
 
 	// Accept server state
 	GetOwner()->SetActorTransform(_ServerState.Transform);
@@ -90,9 +118,17 @@ void UCarMovementReplicationComponent::OnRep_ServerState()
 	}
 }
 
+void UCarMovementReplicationComponent::RemoteClient_OnRep_ServerState()
+{
+	_ClientTimeBetweenLastUpdates = _ClientTimeSinceUpdate;
+	_ClientTimeSinceUpdate = 0;
+	_ClientStartLocation = GetOwner()->GetActorLocation();
+}
+
 void UCarMovementReplicationComponent::Server_SendMove_Implementation(FCarMove const& Move)
 {
-	if (!_OwnerMovement) return;
+	if (!_OwnerMovement)
+		return;
 
 	_OwnerMovement->SimulateMove(Move);
 

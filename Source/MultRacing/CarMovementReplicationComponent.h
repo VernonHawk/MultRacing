@@ -31,10 +31,14 @@ protected:
 	) const override;
 
 private:
+	void RemoteClientTick(float DeltaTime);
+	
 	void UpdateServerState(FCarMove const& Move);
 
 	UFUNCTION()
 	void OnRep_ServerState();
+	void LocalClient_OnRep_ServerState();
+	void RemoteClient_OnRep_ServerState();
 
 	UFUNCTION(Server, Reliable, WithValidation)
 	void Server_SendMove(FCarMove const& Move);
@@ -45,6 +49,10 @@ private:
 
 	UPROPERTY(ReplicatedUsing = OnRep_ServerState)
 	FCarState _ServerState {};
+
+	FVector _ClientStartLocation { 0.f };
+	float _ClientTimeSinceUpdate { 0.f };
+	float _ClientTimeBetweenLastUpdates { 0.f };
 
 	UPROPERTY(VisibleAnywhere) // non-owning
 	UCarMovementComponent* _OwnerMovement { nullptr };
