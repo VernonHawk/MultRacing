@@ -71,14 +71,41 @@ void UCarMovementReplicationComponent::RemoteClientTick(float const DeltaTime)
 	if (_ClientTimeBetweenLastUpdates < KINDA_SMALL_NUMBER)
 		return;
 
+	if (!_OwnerMovement)
+		return;
+
+
+
+	auto const VelocityToDerivative { _ClientTimeBetweenLastUpdates * 100 };
+
+	auto const StartLocation		{ _ClientStartTransform.GetLocation() };
+	auto const StartDerivative		{ _ClientStartVelocity * VelocityToDerivative };
+
+	auto const TargetLocation		{ _ServerState.Transform.GetLocation() };
+	auto const TargetDerivative		{ _ServerState.Velocity * VelocityToDerivative };
+
 	auto const LerpRatio { _ClientTimeSinceUpdate / _ClientTimeBetweenLastUpdates };
-	auto const TargetLocation { _ServerState.Transform.GetLocation() };
-	auto const NewLocation { FMath::LerpStable(_ClientStartTransform.GetLocation(), TargetLocation, LerpRatio) };
+
+	auto const NewLocation { 
+		FMath::CubicInterp(StartLocation, StartDerivative, TargetLocation, TargetDerivative, LerpRatio)
+	};
 
 	GetOwner()->SetActorLocation(NewLocation);
 
+	auto const NewDerivative { 
+		FMath::CubicInterpDerivative(
+			StartLocation, StartDerivative,
+			TargetLocation, TargetDerivative,
+			LerpRatio
+		) 
+	};
+	auto const NewVelocity { NewDerivative / VelocityToDerivative };
+	_OwnerMovement->SetVelocity(NewVelocity);
+
 	auto const TargetRotation { _ServerState.Transform.GetRotation() };
-	auto const NewRotation { FQuat::Slerp(_ClientStartTransform.GetRotation(), TargetRotation, LerpRatio) };
+	auto const NewRotation { 
+		FQuat::Slerp(_ClientStartTransform.GetRotation(), TargetRotation, LerpRatio)
+	};
 
 	GetOwner()->SetActorRotation(NewRotation);
 }
@@ -126,9 +153,13 @@ void UCarMovementReplicationComponent::LocalClient_OnRep_ServerState()
 
 void UCarMovementReplicationComponent::RemoteClient_OnRep_ServerState()
 {
+	if (!_OwnerMovement)
+		return;
+
 	_ClientTimeBetweenLastUpdates = _ClientTimeSinceUpdate;
-	_ClientTimeSinceUpdate = 0;
-	_ClientStartTransform  = GetOwner()->GetActorTransform();
+	_ClientTimeSinceUpdate		  = 0;
+	_ClientStartTransform		  = GetOwner()->GetActorTransform();
+	_ClientStartVelocity		  = _OwnerMovement->GetVelocity();
 }
 
 void UCarMovementReplicationComponent::Server_SendMove_Implementation(FCarMove const& Move)

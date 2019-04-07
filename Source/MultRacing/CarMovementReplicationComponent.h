@@ -51,6 +51,7 @@ private:
 	FCarState _ServerState {};
 
 	FTransform _ClientStartTransform {};
+	FVector	   _ClientStartVelocity  {};
 	float _ClientTimeSinceUpdate { 0.f };
 	float _ClientTimeBetweenLastUpdates { 0.f };
 
