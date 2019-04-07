@@ -2,8 +2,8 @@
 
 #include "CarMovementReplicationComponent.h"
 #include "HermiteCubicSpline.h"
-#include "GameFramework/Actor.h"
 #include "RoleHelpers.h"
+#include "GameFramework/Actor.h"
 #include "UnrealNetwork.h"
 
 #pragma region Public
@@ -164,6 +164,7 @@ void UCarMovementReplicationComponent::Server_SendMove_Implementation(FCarMove c
 	if (!_OwnerMovement)
 		return;
 
+	_ClientSimulatedTime += Move.DeltaTime;
 	_OwnerMovement->SimulateMove(Move);
 
 	UpdateServerState(Move);
@@ -171,9 +172,10 @@ void UCarMovementReplicationComponent::Server_SendMove_Implementation(FCarMove c
 
 bool UCarMovementReplicationComponent::Server_SendMove_Validate(FCarMove const& Move) const
 {
-	auto const ValidTransform { FMath::Abs(Move.SteeringThrow) <= 1.f && FMath::Abs(Move.Throttle) <= 1.f };
-	auto const ValidTime { Move.DeltaTime > 0.f && Move.Time >= 0.f };
+	auto const ValidTransform    { FMath::Abs(Move.SteeringThrow) <= 1.f && FMath::Abs(Move.Throttle) <= 1.f };
+	auto const TimeIsPositive    { Move.DeltaTime > 0.f && Move.Time >= 0.f };
+	auto const TimeBehindServers { _ClientSimulatedTime + Move.DeltaTime < GetWorld()->TimeSeconds };
 
-	return ValidTransform && ValidTime;
+	return ValidTransform && TimeIsPositive && TimeBehindServers;
 }
 #pragma endregion

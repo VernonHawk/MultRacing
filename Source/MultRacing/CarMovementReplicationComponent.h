@@ -55,6 +55,8 @@ private:
 	float _ClientTimeSinceUpdate { 0.f };
 	float _ClientTimeBetweenLastUpdates { 0.f };
 
+	float _ClientSimulatedTime { 0.f };
+
 	UPROPERTY() // non-owning
 	UCarMovementComponent* _OwnerMovement { nullptr };
 
