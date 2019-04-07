@@ -72,9 +72,15 @@ void UCarMovementReplicationComponent::RemoteClientTick(float const DeltaTime)
 		return;
 
 	auto const LerpRatio { _ClientTimeSinceUpdate / _ClientTimeBetweenLastUpdates };
-	auto const NewLocation { FMath::LerpStable(_ClientStartLocation, _ServerState.Transform.GetLocation(), LerpRatio) };
+	auto const TargetLocation { _ServerState.Transform.GetLocation() };
+	auto const NewLocation { FMath::LerpStable(_ClientStartTransform.GetLocation(), TargetLocation, LerpRatio) };
 
 	GetOwner()->SetActorLocation(NewLocation);
+
+	auto const TargetRotation { _ServerState.Transform.GetRotation() };
+	auto const NewRotation { FQuat::Slerp(_ClientStartTransform.GetRotation(), TargetRotation, LerpRatio) };
+
+	GetOwner()->SetActorRotation(NewRotation);
 }
 
 void UCarMovementReplicationComponent::UpdateServerState(FCarMove const& Move)
@@ -122,7 +128,7 @@ void UCarMovementReplicationComponent::RemoteClient_OnRep_ServerState()
 {
 	_ClientTimeBetweenLastUpdates = _ClientTimeSinceUpdate;
 	_ClientTimeSinceUpdate = 0;
-	_ClientStartLocation = GetOwner()->GetActorLocation();
+	_ClientStartTransform  = GetOwner()->GetActorTransform();
 }
 
 void UCarMovementReplicationComponent::Server_SendMove_Implementation(FCarMove const& Move)

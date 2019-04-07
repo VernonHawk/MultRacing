@@ -50,7 +50,7 @@ private:
 	UPROPERTY(ReplicatedUsing = OnRep_ServerState)
 	FCarState _ServerState {};
 
-	FVector _ClientStartLocation { 0.f };
+	FTransform _ClientStartTransform {};
 	float _ClientTimeSinceUpdate { 0.f };
 	float _ClientTimeBetweenLastUpdates { 0.f };
 
