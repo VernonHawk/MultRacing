@@ -55,6 +55,12 @@ private:
 	float _ClientTimeSinceUpdate { 0.f };
 	float _ClientTimeBetweenLastUpdates { 0.f };
 
-	UPROPERTY(VisibleAnywhere) // non-owning
+	UPROPERTY() // non-owning
 	UCarMovementComponent* _OwnerMovement { nullptr };
+
+	UPROPERTY() // non-owning
+	USceneComponent* _MeshOffsetRoot { nullptr };
+
+	UFUNCTION(BlueprintCallable)
+	void SetMeshOffsetRoot(USceneComponent* Root) { _MeshOffsetRoot = Root; }
 };

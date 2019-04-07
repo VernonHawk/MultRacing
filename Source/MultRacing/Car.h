@@ -28,10 +28,10 @@ protected:
 	void BeginPlay() override;
 
 private:
-	UPROPERTY(VisibleAnywhere)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	UCarMovementComponent* const _Movement { nullptr };
 
-	UPROPERTY(VisibleAnywhere)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	UCarMovementReplicationComponent* const _MovementReplication { nullptr };
 
 	void MoveForward(float Value);

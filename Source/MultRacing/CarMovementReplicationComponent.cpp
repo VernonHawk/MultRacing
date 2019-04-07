@@ -86,13 +86,17 @@ void UCarMovementReplicationComponent::RemoteClientTick(float const DeltaTime)
 
 	auto const LerpRatio { _ClientTimeSinceUpdate / _ClientTimeBetweenLastUpdates };
 
-	GetOwner()->SetActorLocation(InterpolateLocation(Spline, LerpRatio));
 	_OwnerMovement->SetVelocity(InterpolateDerivative(Spline, LerpRatio) / VelocityToDerivative);
+
+	if (!_MeshOffsetRoot)
+		return;
+
+	_MeshOffsetRoot->SetWorldLocation(InterpolateLocation(Spline, LerpRatio));
 
 	auto const NewRotation { 
 		FQuat::Slerp(_ClientStartTransform.GetRotation(), _ServerState.Transform.GetRotation(), LerpRatio)
 	};
-	GetOwner()->SetActorRotation(NewRotation);
+	_MeshOffsetRoot->SetWorldRotation(NewRotation);
 }
 
 void UCarMovementReplicationComponent::UpdateServerState(FCarMove const& Move)
@@ -143,8 +147,16 @@ void UCarMovementReplicationComponent::RemoteClient_OnRep_ServerState()
 
 	_ClientTimeBetweenLastUpdates = _ClientTimeSinceUpdate;
 	_ClientTimeSinceUpdate		  = 0;
-	_ClientStartTransform		  = GetOwner()->GetActorTransform();
+
+	if (_MeshOffsetRoot)
+	{
+		_ClientStartTransform.SetLocation(_MeshOffsetRoot->GetComponentLocation());
+		_ClientStartTransform.SetRotation(_MeshOffsetRoot->GetComponentQuat());
+	}
+
 	_ClientStartVelocity		  = _OwnerMovement->GetVelocity();
+
+	GetOwner()->SetActorTransform(_ServerState.Transform);
 }
 
 void UCarMovementReplicationComponent::Server_SendMove_Implementation(FCarMove const& Move)
