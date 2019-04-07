@@ -1,6 +1,7 @@
 // Made by Igor Morenets; April 2019
 
 #include "CarMovementReplicationComponent.h"
+#include "HermiteCubicSpline.h"
 #include "GameFramework/Actor.h"
 #include "RoleHelpers.h"
 #include "UnrealNetwork.h"
@@ -74,39 +75,23 @@ void UCarMovementReplicationComponent::RemoteClientTick(float const DeltaTime)
 	if (!_OwnerMovement)
 		return;
 
-
-
 	auto const VelocityToDerivative { _ClientTimeBetweenLastUpdates * 100 };
 
-	auto const StartLocation		{ _ClientStartTransform.GetLocation() };
-	auto const StartDerivative		{ _ClientStartVelocity * VelocityToDerivative };
-
-	auto const TargetLocation		{ _ServerState.Transform.GetLocation() };
-	auto const TargetDerivative		{ _ServerState.Velocity * VelocityToDerivative };
+	auto const Spline = FHermiteCubicSpline { 
+		_ClientStartTransform.GetLocation(), 
+		_ClientStartVelocity * VelocityToDerivative,
+		_ServerState.Transform.GetLocation(),
+		_ServerState.Velocity * VelocityToDerivative
+	};
 
 	auto const LerpRatio { _ClientTimeSinceUpdate / _ClientTimeBetweenLastUpdates };
 
-	auto const NewLocation { 
-		FMath::CubicInterp(StartLocation, StartDerivative, TargetLocation, TargetDerivative, LerpRatio)
-	};
+	GetOwner()->SetActorLocation(InterpolateLocation(Spline, LerpRatio));
+	_OwnerMovement->SetVelocity(InterpolateDerivative(Spline, LerpRatio) / VelocityToDerivative);
 
-	GetOwner()->SetActorLocation(NewLocation);
-
-	auto const NewDerivative { 
-		FMath::CubicInterpDerivative(
-			StartLocation, StartDerivative,
-			TargetLocation, TargetDerivative,
-			LerpRatio
-		) 
-	};
-	auto const NewVelocity { NewDerivative / VelocityToDerivative };
-	_OwnerMovement->SetVelocity(NewVelocity);
-
-	auto const TargetRotation { _ServerState.Transform.GetRotation() };
 	auto const NewRotation { 
-		FQuat::Slerp(_ClientStartTransform.GetRotation(), TargetRotation, LerpRatio)
+		FQuat::Slerp(_ClientStartTransform.GetRotation(), _ServerState.Transform.GetRotation(), LerpRatio)
 	};
-
 	GetOwner()->SetActorRotation(NewRotation);
 }
 
