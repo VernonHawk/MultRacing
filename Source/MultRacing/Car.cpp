@@ -20,9 +20,9 @@ void ACar::BeginPlay()
 {
 	Super::BeginPlay();
 
-	if  (HasAuthority()) // is a server
+	if (HasAuthority()) // is a server
 	{
-		NetUpdateFrequency = 10;
+		NetUpdateFrequency = 1;
 	}
 }
 
@@ -33,7 +33,7 @@ void ACar::Tick(float const DeltaTime)
 
 	auto const Move = FCarMove { mThrottle, mSteeringThrow, DeltaTime, GetWorld()->TimeSeconds };
 
-	if (IsLocallyControlled() && !HasAuthority()) // is owner and not a server
+	if (IsLocallyControlled() && !HasAuthority()) // is the owner and not a server
 	{
 		Server_SendMove(Move);
 		mUnackedMoves.AddTail(Move);
@@ -68,6 +68,7 @@ void ACar::GetLifetimeReplicatedProps(
 #pragma region Private
 void ACar::OnRep_ServerState()
 {
+	// Accept server state
 	SetActorTransform(mServerState.Transform);
 	mVelocity = mServerState.Velocity;
 
@@ -75,6 +76,12 @@ void ACar::OnRep_ServerState()
 	while (mUnackedMoves.Num() > 0 && mUnackedMoves.GetHead()->GetValue().Time <= mServerState.LastMove.Time)
 	{
 		mUnackedMoves.RemoveNode(mUnackedMoves.GetHead(), true);
+	}
+
+	// Simulate remaining moves
+	for (auto const& Move : mUnackedMoves)
+	{
+		SimulateMove(Move);
 	}
 }
 
@@ -91,6 +98,7 @@ void ACar::SimulateMove(FCarMove const& Move)
 auto ACar::CalculateResistance() const -> FVector
 {
 	auto const VelocityDirection { mVelocity.GetSafeNormal() };
+
 	auto const AirResistance { VelocityDirection * (-mVelocity.SizeSquared() * mDragCoefficient) };
 
 	auto const GravityAcceleration { GetWorld()->GetGravityZ() / -100 }; // convert negative cm to m
