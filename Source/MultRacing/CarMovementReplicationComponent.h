@@ -2,10 +2,14 @@
 
 #pragma once
 
+#include "CarState.h"
+#include "CarMovementComponent.h"
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
+#include "List.h"
 #include "CarMovementReplicationComponent.generated.h"
 
+struct FCarMove;
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class MULTRACING_API UCarMovementReplicationComponent : public UActorComponent
@@ -22,7 +26,26 @@ protected:
 	// Called when the game starts
 	void BeginPlay() override;
 
-private:
+	void GetLifetimeReplicatedProps(
+		TArray<FLifetimeProperty, FDefaultAllocator>& OutLifetimeProps
+	) const override;
 
-		
+private:
+	void UpdateServerState(FCarMove const& Move);
+
+	UFUNCTION()
+	void OnRep_ServerState();
+
+	UFUNCTION(Server, Reliable, WithValidation)
+	void Server_SendMove(FCarMove const& Move);
+	void Server_SendMove_Implementation(FCarMove const& Move);
+	bool Server_SendMove_Validate(FCarMove const& Move) const;
+
+	TDoubleLinkedList<FCarMove> _UnackedMoves {};
+
+	UPROPERTY(ReplicatedUsing = OnRep_ServerState)
+	FCarState _ServerState {};
+
+	UPROPERTY(VisibleAnywhere) // non-owning
+	UCarMovementComponent* _OwnerMovement { nullptr };
 };

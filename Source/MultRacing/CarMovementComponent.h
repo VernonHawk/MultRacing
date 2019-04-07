@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "CarMove.h"
+#include "Engine/World.h"
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
 #include "CarMovementComponent.generated.h"
@@ -22,22 +24,26 @@ public:
 
 	void SimulateMove(FCarMove const& Move);
 
-	auto GetVelocity()		const -> FVector { return _Velocity; }
-	auto GetThrottle()		const -> float	 { return _Throttle; }
-	auto GetSteeringThrow() const -> float	 { return _SteeringThrow; }
+	auto GetLastMove()		const -> FCarMove const& { return _LastMove; }
+	auto GetVelocity()		const -> FVector		 { return _Velocity; }
+	auto GetThrottle()		const -> float			 { return _Throttle; }
+	auto GetSteeringThrow() const -> float			 { return _SteeringThrow; }
 
 	void SetVelocity(FVector const& Velocity)		 { _Velocity	  = Velocity; }
 	void SetThrottle(float const Throttle)			 { _Throttle	  = Throttle; }
 	void SetSteeringThrow(float const SteeringThrow) { _SteeringThrow = SteeringThrow; }
+
 protected:
 	// Called when the game starts
 	void BeginPlay() override;
 
 private:
-	auto CalculateResistance() const->FVector;
+	auto CalculateResistance() const -> FVector;
 
 	void UpdateLocation(float DeltaTime);
 	void UpdateRotation(float DeltaTime, float SteeringThrow);
+
+	FCarMove _LastMove {};
 
 	FVector _Velocity { 0.f };
 	float _Throttle { 0.f };

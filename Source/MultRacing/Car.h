@@ -4,8 +4,6 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Pawn.h"
-#include "CarState.h"
-#include "List.h"
 #include "CarMovementComponent.h"
 #include "CarMovementReplicationComponent.h"
 #include "Car.generated.h"
@@ -29,30 +27,13 @@ protected:
 	// Called when the game starts or when spawned
 	void BeginPlay() override;
 
-	void GetLifetimeReplicatedProps(
-		TArray<FLifetimeProperty, FDefaultAllocator>& OutLifetimeProps
-	) const override;
-
 private:
 	UPROPERTY(VisibleAnywhere)
-	UCarMovementComponent* const _MovementComponent { nullptr };
+	UCarMovementComponent* const _Movement { nullptr };
 
 	UPROPERTY(VisibleAnywhere)
-	UCarMovementReplicationComponent* const _MovementReplicationComponent { nullptr };
-
-	TDoubleLinkedList<FCarMove> _UnackedMoves {};
-
-	UPROPERTY(ReplicatedUsing = OnRep_ServerState)
-	FCarState _ServerState {};
-
-	UFUNCTION()
-	void OnRep_ServerState();
+	UCarMovementReplicationComponent* const _MovementReplication { nullptr };
 
 	void MoveForward(float Value);
 	void MoveRight(float Value);
-
-	UFUNCTION(Server, Reliable, WithValidation)
-	void Server_SendMove(FCarMove const& Move);
-	void Server_SendMove_Implementation(FCarMove const& Move);
-	bool Server_SendMove_Validate(FCarMove const& Move) const;
 };
